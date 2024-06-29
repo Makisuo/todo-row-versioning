@@ -1,18 +1,18 @@
-import {z} from 'zod';
-import {generate, Update} from '@rocicorp/rails';
+import { type Update, generate } from "@rocicorp/rails"
+import { z } from "zod"
 
 export const listSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  ownerID: z.string(),
-});
+	id: z.string(),
+	name: z.string(),
+	ownerId: z.string(),
+})
 
-export type List = z.infer<typeof listSchema>;
-export type ListUpdate = Update<List>;
+export type List = z.infer<typeof listSchema>
+export type ListUpdate = Update<List>
 
 export const {
-  init: createList,
-  list: listLists,
-  get: getList,
-  delete: deleteList,
-} = generate('list', listSchema.parse);
+	init: createList,
+	list: listLists,
+	get: getList,
+	delete: deleteList,
+} = generate("list", listSchema.parse)

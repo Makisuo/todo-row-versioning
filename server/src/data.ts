@@ -10,7 +10,7 @@ export type SearchResult = {
 
 export type ClientGroupRecord = {
 	id: string
-	userID: string
+	userId: string
 	cvrVersion: number
 }
 
@@ -22,33 +22,33 @@ export type ClientRecord = {
 
 export type Affected = {
 	listIDs: string[]
-	userIDs: string[]
+	userIds: string[]
 }
 
-export async function createList(executor: Databse, userID: string, list: List): Promise<Affected> {
-	if (userID !== list.ownerID) {
+export async function createList(executor: Databse, userId: string, list: List): Promise<Affected> {
+	if (userId !== list.ownerId) {
 		throw new Error("Authorization error, cannot create list for other user")
 	}
 	await executor.insert(schema.list).values({
 		id: list.id,
-		ownerid: list.ownerID,
+		ownerId: list.ownerId,
 		name: list.name,
 	})
 
-	return { listIDs: [], userIDs: [list.ownerID] }
+	return { listIDs: [], userIds: [list.ownerId] }
 }
 
-export async function deleteList(executor: Databse, userID: string, listID: string): Promise<Affected> {
-	await requireAccessToList(executor, listID, userID)
-	const userIDs = await getAccessors(executor, listID)
+export async function deleteList(executor: Databse, userId: string, listID: string): Promise<Affected> {
+	await requireAccessToList(executor, listID, userId)
+	const userIds = await getAccessors(executor, listID)
 	await executor.delete(schema.list).where(eq(schema.list.id, listID))
 	return {
 		listIDs: [],
-		userIDs,
+		userIds,
 	}
 }
 
-export async function searchLists(executor: Databse, { accessibleByUserID }: { accessibleByUserID: string }) {
+export async function searchLists(executor: Databse, { accessibleByuserId }: { accessibleByuserId: string }) {
 	const query = executor
 		.select({
 			id: schema.list.id,
@@ -57,17 +57,17 @@ export async function searchLists(executor: Databse, { accessibleByUserID }: { a
 		.from(schema.list)
 		.where(
 			or(
-				eq(schema.list.ownerid, sql.placeholder("userId")),
+				eq(schema.list.ownerId, sql.placeholder("userId")),
 				inArray(
 					schema.list.id,
 					db
 						.select({ listid: schema.share.listid })
 						.from(schema.share)
-						.where(eq(schema.share.userid, sql.placeholder("userId"))),
+						.where(eq(schema.share.userId, sql.placeholder("userId"))),
 				),
 			),
 		)
-	const result = await query.execute({ userId: accessibleByUserID })
+	const result = await query.execute({ userId: accessibleByuserId })
 
 	return result as SearchResult[]
 }
@@ -79,7 +79,7 @@ export async function getLists(executor: Databse, listIDs: string[]) {
 		columns: {
 			id: true,
 			name: true,
-			ownerid: true,
+			ownerId: true,
 		},
 		where: (table, { inArray }) => inArray(table.id, listIDs),
 	})
@@ -87,35 +87,35 @@ export async function getLists(executor: Databse, listIDs: string[]) {
 	return lists
 }
 
-export async function createShare(executor: Databse, userID: string, share: Share): Promise<Affected> {
-	await requireAccessToList(executor, share.listID, userID)
+export async function createShare(executor: Databse, userId: string, share: Share): Promise<Affected> {
+	await requireAccessToList(executor, share.listID, userId)
 
 	await executor.insert(schema.share).values({
 		id: share.id,
 		listid: share.listID,
-		userid: share.userID,
+		userId: share.userId,
 	})
 
 	return {
 		listIDs: [share.listID],
-		userIDs: [share.userID],
+		userIds: [share.userId],
 	}
 }
 
-export async function deleteShare(executor: Databse, userID: string, id: string): Promise<Affected> {
+export async function deleteShare(executor: Databse, userId: string, id: string): Promise<Affected> {
 	const [share] = await getShares(executor, [id])
 
 	if (!share) {
 		throw new Error("Specified share doesn't exist")
 	}
 
-	await requireAccessToList(executor, share.listID, userID)
+	await requireAccessToList(executor, share.listID, userId)
 
 	await executor.delete(schema.share).where(eq(schema.share.id, id))
 
 	return {
 		listIDs: [share.listID],
-		userIDs: [share.userID],
+		userIds: [share.userId],
 	}
 }
 
@@ -141,7 +141,7 @@ export async function getShares(executor: Databse, shareIDs: string[]) {
 		columns: {
 			id: true,
 			listid: true,
-			userid: true,
+			userId: true,
 		},
 		where: (table, { inArray }) => inArray(table.id, shareIDs),
 	})
@@ -150,14 +150,15 @@ export async function getShares(executor: Databse, shareIDs: string[]) {
 		const share: Share = {
 			id: r.id,
 			listID: r.listid,
-			userID: r.userid,
+			userId: r.userId,
 		}
 		return share
 	})
 }
 
-export async function createTodo(executor: Databse, userID: string, todo: Omit<Todo, "sort">): Promise<Affected> {
-	await requireAccessToList(executor, todo.listID, userID)
+export async function createTodo(executor: Databse, userId: string, todo: Omit<Todo, "sort">): Promise<Affected> {
+	console.info("createTodo", userId, todo)
+	await requireAccessToList(executor, todo.listID, userId)
 	const maxOrd = await executor
 		.select({
 			maxord: sql<number>`max(ord)`.as("maxord"),
@@ -177,13 +178,13 @@ export async function createTodo(executor: Databse, userID: string, todo: Omit<T
 
 	return {
 		listIDs: [todo.listID],
-		userIDs: [],
+		userIds: [],
 	}
 }
 
-export async function updateTodo(executor: Databse, userID: string, update: TodoUpdate): Promise<Affected> {
+export async function updateTodo(executor: Databse, userId: string, update: TodoUpdate): Promise<Affected> {
 	const todo = await mustGetTodo(executor, update.id)
-	await requireAccessToList(executor, todo.listID, userID)
+	await requireAccessToList(executor, todo.listID, userId)
 
 	await executor
 		.update(schema.item)
@@ -196,19 +197,19 @@ export async function updateTodo(executor: Databse, userID: string, update: Todo
 
 	return {
 		listIDs: [todo.listID],
-		userIDs: [],
+		userIds: [],
 	}
 }
 
-export async function deleteTodo(executor: Databse, userID: string, todoID: string): Promise<Affected> {
+export async function deleteTodo(executor: Databse, userId: string, todoID: string): Promise<Affected> {
 	const todo = await mustGetTodo(executor, todoID)
-	await requireAccessToList(executor, todo.listID, userID)
+	await requireAccessToList(executor, todo.listID, userId)
 
 	await executor.delete(schema.item).where(eq(schema.item.id, todoID))
 
 	return {
 		listIDs: [todo.listID],
-		userIDs: [],
+		userIds: [],
 	}
 }
 
@@ -263,23 +264,32 @@ export async function getTodos(executor: Databse, todoIDs: string[]) {
 }
 
 export async function putClientGroup(executor: Databse, clientGroup: ClientGroupRecord) {
-	const { id, userID, cvrVersion } = clientGroup
+	const { id, userId, cvrVersion } = clientGroup
 
-	await executor.insert(schema.replicache_client_group).values({
-		id,
-		userid: userID,
-		cvrversion: cvrVersion,
-	})
+	await executor
+		.insert(schema.replicache_client_group)
+		.values({
+			id,
+			userId: userId,
+			cvrversion: cvrVersion,
+		})
+		.onConflictDoUpdate({
+			set: {
+				cvrversion: cvrVersion,
+				userId: userId,
+			},
+			target: schema.replicache_client_group.id,
+		})
 }
 
 export async function getClientGroup(
 	executor: Databse,
 	clientGroupID: string,
-	userID: string,
+	userId: string,
 ): Promise<ClientGroupRecord> {
 	const clientGroup = await executor.query.replicache_client_group.findFirst({
 		columns: {
-			userid: true,
+			userId: true,
 			cvrversion: true,
 		},
 		where: (table, { eq }) => eq(table.id, clientGroupID),
@@ -288,18 +298,18 @@ export async function getClientGroup(
 	if (!clientGroup) {
 		return {
 			id: clientGroupID,
-			userID,
+			userId,
 			cvrVersion: 0,
 		}
 	}
 
-	if (clientGroup.userid !== userID) {
+	if (clientGroup.userId !== userId) {
 		throw new Error("Authorization error - user does not own client group")
 	}
 
 	return {
 		id: clientGroupID,
-		userID: clientGroup.userid,
+		userId: clientGroup.userId,
 		cvrVersion: clientGroup.cvrversion,
 	}
 }
@@ -354,25 +364,32 @@ export async function getClient(executor: Databse, clientID: string, clientGroup
 
 export async function putClient(executor: Databse, client: ClientRecord) {
 	const { id, clientGroupID, lastMutationID } = client
-	await executor.insert(schema.replicache_client).values({
-		id,
-		clientgroupid: clientGroupID,
-		lastmutationid: lastMutationID,
-	})
+	await executor
+		.insert(schema.replicache_client)
+		.values({
+			id,
+			clientgroupid: clientGroupID,
+			lastmutationid: lastMutationID,
+		})
+		.onConflictDoUpdate({
+			set: {
+				clientgroupid: clientGroupID,
+				lastmutationid: lastMutationID,
+			},
+			target: schema.replicache_client.id,
+		})
 }
 
 export async function getAccessors(executor: Databse, listID: string) {
-	const query = union(
-		executor.select({ userid: schema.list.ownerid }).from(schema.list).where(sql`${schema.list.id} = $1`),
-		executor.select({ userid: schema.share.userid }).from(schema.share).where(sql`${schema.share.listid} = $1`),
+	const result = await union(
+		executor.select({ userId: schema.list.ownerId }).from(schema.list).where(eq(schema.list.id, listID)),
+		executor.select({ userId: schema.share.userId }).from(schema.share).where(eq(schema.list.id, listID)),
 	)
 
-	const result = await query.prepare("getAccessors").execute({ $1: listID })
-
-	return result.map((r) => r.userid) as string[]
+	return result.map((r) => r.userId) as string[]
 }
 
-async function requireAccessToList(executor: Databse, listID: string, accessingUserID: string) {
+async function requireAccessToList(executor: Databse, listID: string, accessinguserId: string) {
 	const result = await executor
 		.select({
 			one: sql<number>`1`.as("one"),

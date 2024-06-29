@@ -1,3 +1,4 @@
+import { type Databse, db } from "@hazel/db"
 import type { ReadonlyJSONValue } from "replicache"
 import { listSchema, shareSchema, todoSchema } from "shared"
 import { z } from "zod"
@@ -15,7 +16,6 @@ import {
 	putClientGroup,
 	updateTodo,
 } from "./data"
-import { type Executor, transact } from "./pg"
 import { getPokeBackend } from "./poke"
 
 const mutationSchema = z.object({
@@ -32,7 +32,7 @@ const pushRequestSchema = z.object({
 	mutations: z.array(mutationSchema),
 })
 
-export async function push(userID: string, requestBody: ReadonlyJSONValue) {
+export async function push(userId: string, requestBody: ReadonlyJSONValue) {
 	console.info("Processing push", JSON.stringify(requestBody, null, ""))
 
 	const push = pushRequestSchema.parse(requestBody)
@@ -41,20 +41,20 @@ export async function push(userID: string, requestBody: ReadonlyJSONValue) {
 
 	const allAffected = {
 		listIDs: new Set<string>(),
-		userIDs: new Set<string>(),
+		userIds: new Set<string>(),
 	}
 
 	for (const mutation of push.mutations) {
 		try {
-			const affected = await processMutation(userID, push.clientGroupID, mutation, false)
+			const affected = await processMutation(userId, push.clientGroupID, mutation, false)
 			for (const listID of affected.listIDs) {
 				allAffected.listIDs.add(listID)
 			}
-			for (const userID of affected.userIDs) {
-				allAffected.userIDs.add(userID)
+			for (const userId of affected.userIds) {
+				allAffected.userIds.add(userId)
 			}
 		} catch (e) {
-			await processMutation(userID, push.clientGroupID, mutation, true)
+			await processMutation(userId, push.clientGroupID, mutation, true)
 		}
 	}
 
@@ -62,8 +62,8 @@ export async function push(userID: string, requestBody: ReadonlyJSONValue) {
 	for (const listID of allAffected.listIDs) {
 		pokeBackend.poke(`list/${listID}`)
 	}
-	for (const userID of allAffected.userIDs) {
-		pokeBackend.poke(`user/${userID}`)
+	for (const userId of allAffected.userIds) {
+		pokeBackend.poke(`user/${userId}`)
 	}
 
 	console.info("Processed all mutations in", Date.now() - t0)
@@ -72,7 +72,7 @@ export async function push(userID: string, requestBody: ReadonlyJSONValue) {
 // Implements the push algorithm from
 // https://doc.replicache.dev/strategies/row-version#push
 async function processMutation(
-	userID: string,
+	userId: string,
 	clientGroupID: string,
 	mutation: Mutation,
 	// 1: `let errorMode = false`. In JS, we implement this step naturally
@@ -80,14 +80,14 @@ async function processMutation(
 	errorMode: boolean,
 ): Promise<Affected> {
 	// 2: beginTransaction
-	return await transact(async (executor) => {
-		let affected: Affected = { listIDs: [], userIDs: [] }
+	return await db.transaction(async (executor) => {
+		let affected: Affected = { listIDs: [], userIds: [] }
 
 		console.info("Processing mutation", errorMode ? "errorMode" : "", JSON.stringify(mutation, null, ""))
 
 		// 3: `getClientGroup(body.clientGroupID)`
 		// 4: Verify requesting user owns cg (in function)
-		const clientGroup = await getClientGroup(executor, clientGroupID, userID)
+		const clientGroup = await getClientGroup(executor, clientGroupID, userId)
 		// 5: `getClient(mutation.clientID)`
 		// 6: Verify requesting client group owns requested client
 		const baseClient = await getClient(executor, mutation.clientID, clientGroupID)
@@ -113,7 +113,7 @@ async function processMutation(
 				// 10(i): Run business logic
 				// 10(i)(a): xmin column is automatically updated by Postgres for any
 				//   affected rows.
-				affected = await mutate(executor, userID, mutation)
+				affected = await mutate(executor, userId, mutation)
 			} catch (e) {
 				// 10(ii)(a-c): log error, abort, and retry
 				console.error(`Error executing mutation: ${JSON.stringify(mutation)}: ${e}`)
@@ -135,33 +135,33 @@ async function processMutation(
 	})
 }
 
-async function mutate(executor: Executor, userID: string, mutation: Mutation): Promise<Affected> {
+async function mutate(executor: Databse, userId: string, mutation: Mutation): Promise<Affected> {
 	switch (mutation.name) {
 		case "createList":
-			return await createList(executor, userID, listSchema.parse(mutation.args))
+			return await createList(executor, userId, listSchema.parse(mutation.args))
 		case "deleteList":
-			return await deleteList(executor, userID, z.string().parse(mutation.args))
+			return await deleteList(executor, userId, z.string().parse(mutation.args))
 		case "createTodo":
-			return await createTodo(executor, userID, todoSchema.omit({ sort: true }).parse(mutation.args))
+			return await createTodo(executor, userId, todoSchema.omit({ sort: true }).parse(mutation.args))
 		case "createShare":
-			return await createShare(executor, userID, shareSchema.parse(mutation.args))
+			return await createShare(executor, userId, shareSchema.parse(mutation.args))
 		case "deleteShare":
-			return await deleteShare(executor, userID, z.string().parse(mutation.args))
+			return await deleteShare(executor, userId, z.string().parse(mutation.args))
 		case "updateTodo":
 			return await updateTodo(
 				executor,
-				userID,
+				userId,
 				todoSchema
 					.partial()
 					.merge(todoSchema.pick({ id: true }))
 					.parse(mutation.args),
 			)
 		case "deleteTodo":
-			return await deleteTodo(executor, userID, z.string().parse(mutation.args))
+			return await deleteTodo(executor, userId, z.string().parse(mutation.args))
 		default:
 			return {
 				listIDs: [],
-				userIDs: [],
+				userIds: [],
 			}
 	}
 }

@@ -14,35 +14,35 @@ async function init() {
 	}
 
 	function Root() {
-		const [userID, setUserID] = useState("")
+		const [userId, setuserId] = useState("")
 		const [r, setR] = useState<Replicache<M> | null>(null)
 
 		useEffect(() => {
-			if (!userID) {
+			if (!userId) {
 				return
 			}
 			console.info("updating replicache")
 			const r = new Replicache({
-				name: userID,
+				name: userId,
 				licenseKey,
 				mutators,
-				pushURL: `http://localhost:8080/api/replicache/push?userID=${userID}`,
-				pullURL: `http://localhost:8080/api/replicache/pull?userID=${userID}`,
+				pushURL: `http://localhost:3000/replicache/push?userId=${userId}`,
+				pullURL: `http://localhost:3000/replicache/pull?userId=${userId}`,
 				logLevel: "debug",
 			})
 			setR(r)
 			return () => {
 				void r.close()
 			}
-		}, [userID])
+		}, [userId])
 
 		const storageListener = useCallback(() => {
-			let userID = localStorage.getItem("userID")
-			if (!userID) {
-				userID = nanoid(6)
-				localStorage.setItem("userID", userID)
+			let userId = localStorage.getItem("userId")
+			if (!userId) {
+				userId = nanoid(6)
+				localStorage.setItem("userId", userId)
 			}
-			setUserID(userID)
+			setuserId(userId)
 		}, [])
 		useEffect(() => {
 			storageListener()
@@ -52,12 +52,12 @@ async function init() {
 			}
 		}, [])
 
-		const handleUserIDChange = (userID: string) => {
-			localStorage.setItem("userID", userID)
+		const handleuserIdChange = (userId: string) => {
+			localStorage.setItem("userId", userId)
 			storageListener()
 		}
 
-		return r && <App rep={r} userID={userID} onUserIDChange={(userID) => handleUserIDChange(userID)} />
+		return r && <App rep={r} userId={userId} onuserIdChange={(userId) => handleuserIdChange(userId)} />
 	}
 
 	ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(

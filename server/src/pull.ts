@@ -15,7 +15,6 @@ import {
 	searchShares,
 	searchTodos,
 } from "./data"
-import { transact } from "./pg"
 
 const cookie = z.object({
 	order: z.number(),
@@ -24,7 +23,7 @@ const cookie = z.object({
 
 type Cookie = z.infer<typeof cookie>
 
-const pullRequest = z.object({
+export const pullRequest = z.object({
 	clientGroupID: z.string(),
 	cookie: z.union([cookie, z.null()]),
 })
@@ -34,26 +33,31 @@ const cvrCache = new Map<string, CVR>()
 
 // Implements the algorithm from:
 // https://doc.replicache.dev/strategies/row-version#pull
-export async function pull(userID: string, requestBody: Express.Request): Promise<PullResponse> {
+export async function pull(userId: string, requestBody: z.infer<typeof pullRequest>): Promise<PullResponse> {
 	console.info("Processing pull", JSON.stringify(requestBody, null, ""))
 
-	const pull = pullRequest.parse(requestBody)
+	const pull = requestBody
 
 	const { clientGroupID } = pull
 	// 1: Fetch prevCVR
 	const prevCVR = pull.cookie ? cvrCache.get(pull.cookie.cvrID) : undefined
 	// 2: Init baseCVR
-	const baseCVR: CVR = prevCVR ?? {}
+	const baseCVR: CVR = prevCVR ?? {
+		list: {},
+		todo: {},
+		share: {},
+		client: {},
+	}
 	console.info({ prevCVR, baseCVR })
 
 	// 3: begin transaction
 	const txResult = await db.transaction(async (executor) => {
 		// 4-5: getClientGroup(body.clientGroupID), verify user
-		const baseClientGroupRecord = await getClientGroup(executor, clientGroupID, userID)
+		const baseClientGroupRecord = await getClientGroup(executor, clientGroupID, userId)
 
 		const [listMeta, clientMeta] = await Promise.all([
 			// 6: Read all domain data, just ids and versions
-			searchLists(executor, { accessibleByUserID: userID }),
+			searchLists(executor, { accessibleByuserId: userId }),
 			// 7: Read all clients in CG
 			searchClients(executor, {
 				clientGroupID,
@@ -90,18 +94,19 @@ export async function pull(userID: string, requestBody: Express.Request): Promis
 
 		// 11: get entities
 		const [lists, shares, todos] = await Promise.all([
-			getLists(executor, diff.list.puts),
-			getShares(executor, diff.share.puts),
-			getTodos(executor, diff.todo.puts),
+			getLists(executor, diff.list?.puts ?? []),
+			getShares(executor, diff.share?.puts ?? []),
+			getTodos(executor, diff.todo?.puts ?? []),
 		])
-		console.info({ lists, shares, todos })
+		console.info({ lists, shares, todos }, "WOW")
 
 		// 12: changed clients - no need to re-read clients from database,
 		// we already have their versions.
 		const clients: CVREntries = {}
-		for (const clientID of diff.client.puts) {
-			clients[clientID] = nextCVR.client[clientID]
+		for (const clientID of diff.client?.puts ?? []) {
+			clients[clientID] = nextCVR.client?.[clientID] ?? 0
 		}
+
 		console.info({ clients })
 
 		// 13: newCVRVersion
@@ -118,9 +123,9 @@ export async function pull(userID: string, requestBody: Express.Request): Promis
 
 		return {
 			entities: {
-				list: { dels: diff.list.dels, puts: lists },
-				share: { dels: diff.share.dels, puts: shares },
-				todo: { dels: diff.todo.dels, puts: todos },
+				list: { dels: diff.list?.dels ?? [], puts: lists },
+				share: { dels: diff.share?.dels ?? [], puts: shares },
+				todo: { dels: diff.todo?.dels ?? [], puts: todos },
 			},
 			clients,
 			nextCVR,

@@ -7,9 +7,9 @@ export const replicache_meta = pgTable("replicache_meta", {
 
 export const replicache_client_group = pgTable("replicache_client_group", {
 	id: varchar("id", { length: 36 }).primaryKey().notNull(),
-	userid: varchar("userid", { length: 36 }).notNull(),
-	cvrversion: integer("cvrversion").notNull(),
-	lastmodified: timestamp("lastmodified", {
+	userId: varchar("user_id", { length: 36 }).notNull(),
+	cvrversion: integer("cvr_version").notNull(),
+	lastmodified: timestamp("last_modified", {
 		precision: 6,
 		mode: "string",
 	})
@@ -19,9 +19,9 @@ export const replicache_client_group = pgTable("replicache_client_group", {
 
 export const replicache_client = pgTable("replicache_client", {
 	id: varchar("id", { length: 36 }).primaryKey().notNull(),
-	clientgroupid: varchar("clientgroupid", { length: 36 }).notNull(),
-	lastmutationid: integer("lastmutationid").notNull(),
-	lastmodified: timestamp("lastmodified", {
+	clientgroupid: varchar("client_group_id", { length: 36 }).notNull(),
+	lastmutationid: integer("last_mutation_id").notNull(),
+	lastmodified: timestamp("last_modified", {
 		precision: 6,
 		mode: "string",
 	})
@@ -31,9 +31,9 @@ export const replicache_client = pgTable("replicache_client", {
 
 export const list = pgTable("list", {
 	id: varchar("id", { length: 36 }).primaryKey().notNull(),
-	ownerid: varchar("ownerid", { length: 36 }).notNull(),
+	ownerId: varchar("owner_id", { length: 36 }).notNull(),
 	name: text("name").notNull(),
-	lastmodified: timestamp("lastmodified", {
+	lastmodified: timestamp("last_modified", {
 		precision: 6,
 		mode: "string",
 	})
@@ -43,9 +43,9 @@ export const list = pgTable("list", {
 
 export const share = pgTable("share", {
 	id: varchar("id", { length: 36 }).primaryKey().notNull(),
-	listid: varchar("listid", { length: 36 }).notNull(),
-	userid: varchar("userid", { length: 36 }).notNull(),
-	lastmodified: timestamp("lastmodified", {
+	listid: varchar("list_id", { length: 36 }).notNull(),
+	userId: varchar("user_id", { length: 36 }).notNull(),
+	lastmodified: timestamp("last_modified", {
 		precision: 6,
 		mode: "string",
 	})
@@ -55,11 +55,11 @@ export const share = pgTable("share", {
 
 export const item = pgTable("item", {
 	id: varchar("id", { length: 36 }).primaryKey().notNull(),
-	listid: varchar("listid", { length: 36 }).notNull(),
+	listid: varchar("list_id", { length: 36 }).notNull(),
 	title: text("title").notNull(),
 	complete: boolean("complete").notNull(),
 	ord: integer("ord").notNull(),
-	lastmodified: timestamp("lastmodified", {
+	lastmodified: timestamp("last_modified", {
 		precision: 6,
 		mode: "string",
 	})

@@ -21,7 +21,7 @@ export async function createSchema(executor: Executor) {
 
 	await executor(`create table replicache_client_group (
     id varchar(36) primary key not null,
-    userid varchar(36) not null,
+    userId varchar(36) not null,
     cvrversion integer not null,
     lastmodified timestamp(6) not null
     )`)
@@ -35,7 +35,7 @@ export async function createSchema(executor: Executor) {
 
 	await executor(`create table list (
     id varchar(36) primary key not null,
-    ownerid varchar(36) not null,
+    ownerId varchar(36) not null,
     name text not null,
     lastmodified timestamp(6) not null
     )`)
@@ -43,7 +43,7 @@ export async function createSchema(executor: Executor) {
 	await executor(`create table share (
     id varchar(36) primary key not null,
     listid varchar(36) not null,
-    userid varchar(36) not null,
+    userId varchar(36) not null,
     lastmodified timestamp(6) not null
     )`)
 

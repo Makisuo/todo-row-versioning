@@ -9,8 +9,7 @@
 		"format": "npm run format --ws",
 		"check-format": "npm run check-format --ws",
 		"lint": "npm run lint --ws",
-		"build": "npm run build -ws --if-present",
-		"check-types": "npm run check-types --ws"
+		"build": "npm run build -ws --if-present"
 	},
 	"type": "module",
 	"eslintConfig": {
@@ -21,9 +20,10 @@
 		"node": ">=16.15.0",
 		"npm": ">=7.0.0"
 	},
-	"workspaces": ["client", "server", "shared", "db"],
+	"workspaces": ["client", "server", "shared", "db", "server2"],
 	"dependencies": {
 		"@rocicorp/rails": "0.10.0",
 		"replicache": "^14.2.2"
-	}
+	},
+	"private": true
 }
