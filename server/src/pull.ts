@@ -1,3 +1,4 @@
+import { db } from "@hazel/db"
 import type Express from "express"
 import { nanoid } from "nanoid"
 import type { PatchOperation, PullResponse } from "replicache"
@@ -46,7 +47,7 @@ export async function pull(userID: string, requestBody: Express.Request): Promis
 	console.info({ prevCVR, baseCVR })
 
 	// 3: begin transaction
-	const txResult = await transact(async (executor) => {
+	const txResult = await db.transaction(async (executor) => {
 		// 4-5: getClientGroup(body.clientGroupID), verify user
 		const baseClientGroupRecord = await getClientGroup(executor, clientGroupID, userID)
 
