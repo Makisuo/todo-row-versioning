@@ -1,3 +1,4 @@
+import { type Databse, eq, schema } from "@hazel/db"
 import type { List, Share, Todo, TodoUpdate } from "shared"
 import type { Executor } from "./pg.js"
 
@@ -23,22 +24,23 @@ export type Affected = {
 	userIDs: string[]
 }
 
-export async function createList(executor: Executor, userID: string, list: List): Promise<Affected> {
+export async function createList(executor: Databse, userID: string, list: List): Promise<Affected> {
 	if (userID !== list.ownerID) {
 		throw new Error("Authorization error, cannot create list for other user")
 	}
-	await executor(`insert into list (id, ownerid, name, lastmodified) values ($1, $2, $3, now())`, [
-		list.id,
-		list.ownerID,
-		list.name,
-	])
+	await executor.insert(schema.list).values({
+		id: list.id,
+		ownerid: list.ownerID,
+		name: list.name,
+	})
+
 	return { listIDs: [], userIDs: [list.ownerID] }
 }
 
-export async function deleteList(executor: Executor, userID: string, listID: string): Promise<Affected> {
+export async function deleteList(executor: Databse, userID: string, listID: string): Promise<Affected> {
 	await requireAccessToList(executor, listID, userID)
 	const userIDs = await getAccessors(executor, listID)
-	await executor(`delete from list where id = $1`, [listID])
+	await executor.delete(schema.list).where(eq(schema.list.id, listID))
 	return {
 		listIDs: [],
 		userIDs,
