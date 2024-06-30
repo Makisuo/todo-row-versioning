@@ -1,7 +1,6 @@
 import { type Databse, db, eq, inArray, or, schema, sql } from "@hazel/db"
 import { union } from "drizzle-orm/pg-core"
 import type { List, Share, Todo, TodoUpdate } from "shared"
-import type { Executor } from "./pg.js"
 
 export type SearchResult = {
 	id: string
@@ -17,7 +16,7 @@ export type ClientGroupRecord = {
 export type ClientRecord = {
 	id: string
 	clientGroupID: string
-	lastMutationID: number
+	lastMutationId: number
 }
 
 export type Affected = {
@@ -40,6 +39,7 @@ export async function createList(executor: Databse, userId: string, list: List):
 
 export async function deleteList(executor: Databse, userId: string, listID: string): Promise<Affected> {
 	await requireAccessToList(executor, listID, userId)
+
 	const userIds = await getAccessors(executor, listID)
 	await executor.delete(schema.list).where(eq(schema.list.id, listID))
 	return {
@@ -269,11 +269,11 @@ export async function putClientGroup(executor: Databse, clientGroup: ClientGroup
 		.values({
 			id,
 			userId: userId,
-			cvrversion: cvrVersion,
+			cvrVersion: cvrVersion,
 		})
 		.onConflictDoUpdate({
 			set: {
-				cvrversion: cvrVersion,
+				cvrVersion: cvrVersion,
 				userId: userId,
 			},
 			target: schema.replicache_client_group.id,
@@ -288,7 +288,7 @@ export async function getClientGroup(
 	const clientGroup = await executor.query.replicache_client_group.findFirst({
 		columns: {
 			userId: true,
-			cvrversion: true,
+			cvrVersion: true,
 		},
 		where: (table, { eq }) => eq(table.id, clientGroupID),
 	})
@@ -308,7 +308,7 @@ export async function getClientGroup(
 	return {
 		id: clientGroupID,
 		userId: clientGroup.userId,
-		cvrVersion: clientGroup.cvrversion,
+		cvrVersion: clientGroup.cvrVersion,
 	}
 }
 
@@ -316,17 +316,17 @@ export async function searchClients(executor: Databse, { clientGroupID }: { clie
 	const clients = await executor.query.replicache_client.findMany({
 		columns: {
 			id: true,
-			clientgroupid: true,
-			lastmutationid: true,
+			clientGroupID: true,
+			lastMutationId: true,
 		},
-		where: (table, { eq }) => eq(table.clientgroupid, clientGroupID),
+		where: (table, { eq }) => eq(table.clientGroupID, clientGroupID),
 	})
 
 	const mappedClients = clients.map((r) => {
 		return {
 			id: r.id,
-			clientGroupID: r.clientgroupid,
-			rowversion: r.lastmutationid,
+			clientGroupID: r.clientGroupID,
+			rowversion: r.lastMutationId,
 		}
 	})
 
@@ -336,8 +336,8 @@ export async function searchClients(executor: Databse, { clientGroupID }: { clie
 export async function getClient(executor: Databse, clientID: string, clientGroupID: string): Promise<ClientRecord> {
 	const client = await executor.query.replicache_client.findFirst({
 		columns: {
-			clientgroupid: true,
-			lastmutationid: true,
+			clientGroupID: true,
+			lastMutationId: true,
 		},
 		where: (table, { eq }) => eq(table.id, clientID),
 	})
@@ -346,33 +346,33 @@ export async function getClient(executor: Databse, clientID: string, clientGroup
 		return {
 			id: clientID,
 			clientGroupID: "",
-			lastMutationID: 0,
+			lastMutationId: 0,
 		}
 	}
 
-	if (client.clientgroupid !== clientGroupID) {
+	if (client.clientGroupID !== clientGroupID) {
 		throw new Error("Authorization error - client does not belong to client group")
 	}
 	return {
 		id: clientID,
-		clientGroupID: client.clientgroupid,
-		lastMutationID: client.lastmutationid,
+		clientGroupID: client.clientGroupID,
+		lastMutationId: client.lastMutationId,
 	}
 }
 
 export async function putClient(executor: Databse, client: ClientRecord) {
-	const { id, clientGroupID, lastMutationID } = client
+	const { id, clientGroupID, lastMutationId } = client
 	await executor
 		.insert(schema.replicache_client)
 		.values({
 			id,
-			clientgroupid: clientGroupID,
-			lastmutationid: lastMutationID,
+			clientGroupID: clientGroupID,
+			lastMutationId: lastMutationId,
 		})
 		.onConflictDoUpdate({
 			set: {
-				clientgroupid: clientGroupID,
-				lastmutationid: lastMutationID,
+				clientGroupID: clientGroupID,
+				lastMutationId: lastMutationId,
 			},
 			target: schema.replicache_client.id,
 		})
@@ -381,7 +381,7 @@ export async function putClient(executor: Databse, client: ClientRecord) {
 export async function getAccessors(executor: Databse, listID: string) {
 	const result = await union(
 		executor.select({ userId: schema.list.ownerId }).from(schema.list).where(eq(schema.list.id, listID)),
-		executor.select({ userId: schema.share.userId }).from(schema.share).where(eq(schema.list.id, listID)),
+		executor.select({ userId: schema.share.userId }).from(schema.share).where(eq(schema.share.listid, listID)),
 	)
 
 	return result.map((r) => r.userId) as string[]
@@ -390,7 +390,7 @@ export async function getAccessors(executor: Databse, listID: string) {
 async function requireAccessToList(executor: Databse, listID: string, accessinguserId: string) {
 	const result = await executor
 		.select({
-			one: sql<number>`1`.as("one"),
+			id: schema.list.id,
 		})
 		.from(schema.list)
 		.where(or(eq(schema.list.id, listID), inArray(schema.list.id, await getAccessors(executor, listID))))

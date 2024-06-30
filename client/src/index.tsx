@@ -44,6 +44,8 @@ async function init() {
 			}
 			setuserId(userId)
 		}, [])
+
+		// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 		useEffect(() => {
 			storageListener()
 			addEventListener("storage", storageListener, false)

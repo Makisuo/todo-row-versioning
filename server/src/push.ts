@@ -93,7 +93,7 @@ async function processMutation(
 		const baseClient = await getClient(executor, mutation.clientID, clientGroupID)
 
 		// 7: init nextMutationID
-		const nextMutationID = baseClient.lastMutationID + 1
+		const nextMutationID = baseClient.lastMutationId + 1
 
 		// 8: rollback and skip if already processed.
 		if (mutation.id < nextMutationID) {
@@ -125,7 +125,7 @@ async function processMutation(
 		const nextClient = {
 			id: mutation.clientID,
 			clientGroupID,
-			lastMutationID: nextMutationID,
+			lastMutationId: nextMutationID,
 		}
 
 		await Promise.all([putClientGroup(executor, clientGroup), putClient(executor, nextClient)])

@@ -108,14 +108,14 @@ export async function pull(userId: string, requestBody: z.infer<typeof pullReque
 
 		console.info({ clients })
 
-		// 13: newCVRVersion
-		const baseCVRVersion = pull.cookie?.order ?? 0
-		const nextCVRVersion = Math.max(baseCVRVersion, baseClientGroupRecord.cvrVersion) + 1
+		// 13: newcvrVersion
+		const basecvrVersion = pull.cookie?.order ?? 0
+		const nextcvrVersion = Math.max(basecvrVersion, baseClientGroupRecord.cvrVersion) + 1
 
 		// 14: Write ClientGroupRecord
 		const nextClientGroupRecord = {
 			...baseClientGroupRecord,
-			cvrVersion: nextCVRVersion,
+			cvrVersion: nextcvrVersion,
 		}
 		console.info({ nextClientGroupRecord })
 		await putClientGroup(executor, nextClientGroupRecord)
@@ -128,7 +128,7 @@ export async function pull(userId: string, requestBody: z.infer<typeof pullReque
 			},
 			clients,
 			nextCVR,
-			nextCVRVersion,
+			nextcvrVersion,
 		}
 	})
 
@@ -141,7 +141,7 @@ export async function pull(userId: string, requestBody: z.infer<typeof pullReque
 		}
 	}
 
-	const { entities, clients, nextCVR, nextCVRVersion } = txResult
+	const { entities, clients, nextCVR, nextcvrVersion } = txResult
 
 	// 16-17: store cvr
 	const cvrID = nanoid()
@@ -168,11 +168,11 @@ export async function pull(userId: string, requestBody: z.infer<typeof pullReque
 
 	// 18(ii): construct cookie
 	const cookie: Cookie = {
-		order: nextCVRVersion,
+		order: nextcvrVersion,
 		cvrID,
 	}
 
-	// 17(iii): lastMutationIDChanges
+	// 17(iii): lastMutationIdChanges
 	const lastMutationIDChanges = clients
 
 	return {

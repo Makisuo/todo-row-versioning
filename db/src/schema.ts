@@ -8,8 +8,8 @@ export const replicache_meta = pgTable("replicache_meta", {
 export const replicache_client_group = pgTable("replicache_client_group", {
 	id: varchar("id", { length: 36 }).primaryKey().notNull(),
 	userId: varchar("user_id", { length: 36 }).notNull(),
-	cvrversion: integer("cvr_version").notNull(),
-	lastmodified: timestamp("last_modified", {
+	cvrVersion: integer("cvr_version").notNull(),
+	lastModified: timestamp("last_modified", {
 		precision: 6,
 		mode: "string",
 	})
@@ -19,9 +19,9 @@ export const replicache_client_group = pgTable("replicache_client_group", {
 
 export const replicache_client = pgTable("replicache_client", {
 	id: varchar("id", { length: 36 }).primaryKey().notNull(),
-	clientgroupid: varchar("client_group_id", { length: 36 }).notNull(),
-	lastmutationid: integer("last_mutation_id").notNull(),
-	lastmodified: timestamp("last_modified", {
+	clientGroupID: varchar("client_group_id", { length: 36 }).notNull(),
+	lastMutationId: integer("last_mutation_id").notNull(),
+	lastModified: timestamp("last_modified", {
 		precision: 6,
 		mode: "string",
 	})
@@ -33,7 +33,7 @@ export const list = pgTable("list", {
 	id: varchar("id", { length: 36 }).primaryKey().notNull(),
 	ownerId: varchar("owner_id", { length: 36 }).notNull(),
 	name: text("name").notNull(),
-	lastmodified: timestamp("last_modified", {
+	lastModified: timestamp("last_modified", {
 		precision: 6,
 		mode: "string",
 	})
@@ -45,7 +45,7 @@ export const share = pgTable("share", {
 	id: varchar("id", { length: 36 }).primaryKey().notNull(),
 	listid: varchar("list_id", { length: 36 }).notNull(),
 	userId: varchar("user_id", { length: 36 }).notNull(),
-	lastmodified: timestamp("last_modified", {
+	lastModified: timestamp("last_modified", {
 		precision: 6,
 		mode: "string",
 	})
@@ -59,7 +59,7 @@ export const item = pgTable("item", {
 	title: text("title").notNull(),
 	complete: boolean("complete").notNull(),
 	ord: integer("ord").notNull(),
-	lastmodified: timestamp("last_modified", {
+	lastModified: timestamp("last_modified", {
 		precision: 6,
 		mode: "string",
 	})
