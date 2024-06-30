@@ -157,8 +157,6 @@ export async function getShares(executor: Databse, shareIDs: string[]) {
 }
 
 export async function createTodo(executor: Databse, userId: string, todo: Omit<Todo, "sort">): Promise<Affected> {
-	console.info("createTodo", userId, todo)
-	await requireAccessToList(executor, todo.listID, userId)
 	const maxOrd = await executor
 		.select({
 			maxord: sql<number>`max(ord)`.as("maxord"),

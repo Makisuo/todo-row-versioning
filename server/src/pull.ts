@@ -1,5 +1,4 @@
 import { db } from "@hazel/db"
-import type Express from "express"
 import { nanoid } from "nanoid"
 import type { PatchOperation, PullResponse } from "replicache"
 import { z } from "zod"

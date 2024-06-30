@@ -136,6 +136,7 @@ async function processMutation(
 }
 
 async function mutate(executor: Databse, userId: string, mutation: Mutation): Promise<Affected> {
+	console.info("Processing mutation", mutation)
 	switch (mutation.name) {
 		case "createList":
 			return await createList(executor, userId, listSchema.parse(mutation.args))
